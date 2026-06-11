@@ -1,0 +1,9 @@
+Given the scope of the problem,
+
+- What I have to do is to.
+
+- Understand all the PID files the procfs.
+- Parse through each of them by reading their stat.
+- Organize them and give a clean report of them. 
+
+- .. 
