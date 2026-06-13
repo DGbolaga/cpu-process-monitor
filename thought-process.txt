@@ -5,5 +5,8 @@ Given the scope of the problem,
 - Understand all the PID files the procfs.
 - Parse through each of them by reading their stat.
 - Organize them and give a clean report of them. 
+- A clean report:
+-       Per process CPU Utilization
+-       Aggregate and per core CPU Stat 
 
-- .. 
+
