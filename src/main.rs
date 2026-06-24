@@ -13,33 +13,38 @@ struct CPU {
     iowait: f64 // idle waiting for I/O (blocked because of I/O or disk task) 
 }
 
-fn get_aggregate_percentage() -> Vec<f64> {
+fn get_percentage() -> Vec<Vec<f64>> {
     let delta = get_delta();
-    
+    let mut percentages = vec![vec![0.0; delta[0].len()]; delta.len()];
+
     // total CPU
-    let mut total: f64 = 0.0; // total 
-    for x in &delta {
-        total += x
+    let total: f64 = delta[0].iter().sum();
+    percentages[0] = delta[0].iter().map(|val| val/total*100.0).collect();
+    
+
+    // per core CPU
+    for i in 1..delta.len() {
+        let core_total: f64 = delta[i].iter().sum();
+        for j in 0..delta[0].len() {
+            percentages[i][j] = delta[i][j]/core_total * 100.0;
+        }
+    
     }
 
-    let percentages = delta.iter().map(|val| val/total*100.0).collect();
-    
-    // per core CPU
-    let mut per_core_total: Vec<f64> = vec![0.0; delta.len()];
-    // for y in &delta
-    return percentages 
+    //println!("{:?}", percentages);
+    return percentages;
 }
 
-fn get_delta() -> Vec<f64> {
+fn get_delta() -> Vec<Vec<f64>> {
 
-    let (aggregate1, _per_core_vec1) = get_cpu_report();
+    let (aggregate1, per_core_vec1) = get_cpu_report();
 
     // sleep. I want to compute the delta/difference
     thread::sleep(Duration::from_secs(1));
-    let (aggregate2, _per_core_vec2) = get_cpu_report();
+    let (aggregate2, per_core_vec2) = get_cpu_report();
     
-
-    let mut delta: Vec<Vec<f64>> = vec![vec![0.0; 5]; 5];
+    let n = per_core_vec2.len();
+    let mut delta: Vec<Vec<f64>> = vec![vec![0.0; 5]; n+1];
 
     
     // push aggregate
@@ -48,13 +53,19 @@ fn get_delta() -> Vec<f64> {
     delta[0][2] = aggregate2.system - aggregate1.system;
     delta[0][3] = aggregate2.idle - aggregate1.idle;
     delta[0][4] = aggregate2.iowait - aggregate1.iowait;
+    
+    // push per core
+    for j in 0..n {
+        delta[j+1][0] = per_core_vec2[j].user - per_core_vec1[j].user;
+        delta[j+1][1] = per_core_vec2[j].nice - per_core_vec1[j].nice;
+        delta[j+1][2] = per_core_vec2[j].system - per_core_vec1[j].system;
+        delta[j+1][3] = per_core_vec2[j].idle - per_core_vec1[j].idle;
+        delta[j+1][4] = per_core_vec2[j].iowait - per_core_vec1[j].iowait;
 
-    // for info in &delta {
-    //     println!("{}: {}", info.0, info.1);
-    // }
-    // println!("{:?}", delta);
+    }
+    //println!("{:?}", delta);
 
-   return delta[0].clone(); 
+   return delta; 
 
 }
 
@@ -102,8 +113,16 @@ fn get_cpu_report() -> (CPU, Vec<CPU>) {
 }
 
 fn main() {
-    let agg = get_aggregate_percentage();
-    println!("CPU total: user {:.1}%  nice {:.1}%  sys {:.1}%  idle {:.1}%  iowait {:.1}%", agg[0], agg[1], agg[2], agg[3], agg[4]);
+    let agg = get_percentage();
+    for i in 0..agg.len() {
+        if i == 0 {
+            println!("CPU total: user {:.1}%  nice {:.1}%  sys {:.1}%  idle {:.1}%  iowait {:.1}%", agg[i][0], agg[i][1], agg[i][2], agg[i][3], agg[i][4]);
+        }
+        else {
+            println!("  cpu{}    user {:.1}%  nice {:.1}%  sys {:.1}%  idle {:.1}%  iowait {:.1}%", i-1, agg[i][0], agg[i][1], agg[i][2], agg[i][3], agg[i][4]);
+        }
+    }
+
 
     
     
